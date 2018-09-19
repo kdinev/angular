@@ -41,7 +41,7 @@ export class MockCacheStorage implements CacheStorage {
     if (!this.caches.has(name)) {
       this.caches.set(name, new MockCache(this.origin));
     }
-    return this.caches.get(name) !;
+    return this.caches.get(name) as any;
   }
 
   async match(req: Request): Promise<Response|undefined> {
@@ -74,7 +74,7 @@ export class MockCacheStorage implements CacheStorage {
   }
 }
 
-export class MockCache implements Cache {
+export class MockCache {
   private cache = new Map<string, Response>();
 
   constructor(private origin: string, hydrated?: DehydratedCache) {
@@ -122,7 +122,6 @@ export class MockCache implements Cache {
     return res !;
   }
 
-
   async matchAll(request?: Request|string, options?: CacheQueryOptions): Promise<Response[]> {
     if (request === undefined) {
       return Array.from(this.cache.values());
@@ -149,7 +148,7 @@ export class MockCache implements Cache {
   dehydrate(): DehydratedCache {
     const dehydrated: DehydratedCache = {};
     Array.from(this.cache.keys()).forEach(url => {
-      const resp = this.cache.get(url) !as MockResponse;
+      const resp = this.cache.get(url) as MockResponse;
       const dehydratedResp = {
         body: resp._body,
         status: resp.status,
@@ -157,7 +156,8 @@ export class MockCache implements Cache {
         headers: {},
       } as DehydratedResponse;
 
-      resp.headers.forEach((value, name) => { dehydratedResp.headers[name] = value; });
+      resp.headers.forEach(
+          (value: string, name: string) => { dehydratedResp.headers[name] = value; });
 
       dehydrated[url] = dehydratedResp;
     });

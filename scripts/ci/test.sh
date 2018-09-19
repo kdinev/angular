@@ -22,9 +22,6 @@ case ${CI_MODE} in
   e2e)
     ${thisDir}/test-e2e.sh
     ;;
-  e2e_2)
-    ${thisDir}/test-e2e-2.sh
-    ;;
   saucelabs_required)
     ${thisDir}/test-saucelabs.sh
     ;;
@@ -45,11 +42,5 @@ case ${CI_MODE} in
     ;;
   aio_e2e)
     ${thisDir}/test-aio-e2e.sh
-    ;;
-  aio_optional)
-    ${thisDir}/test-aio-optional.sh
-    ;;
-  bazel)
-    ${thisDir}/test-bazel.sh
     ;;
 esac

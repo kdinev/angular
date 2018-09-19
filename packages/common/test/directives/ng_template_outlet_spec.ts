@@ -11,7 +11,7 @@ import {Component, ContentChildren, Directive, Injectable, NO_ERRORS_SCHEMA, OnD
 import {ComponentFixture, TestBed, async} from '@angular/core/testing';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
 
-export function main() {
+{
   describe('NgTemplateOutlet', () => {
     let fixture: ComponentFixture<any>;
 
@@ -224,12 +224,14 @@ class DestroyableCmpt implements OnDestroy {
 
 @Directive({selector: 'tpl-refs', exportAs: 'tplRefs'})
 class CaptureTplRefs {
-  @ContentChildren(TemplateRef) tplRefs: QueryList<TemplateRef<any>>;
+  // TODO(issue/24571): remove '!'.
+  @ContentChildren(TemplateRef) tplRefs !: QueryList<TemplateRef<any>>;
 }
 
 @Component({selector: 'test-cmp', template: ''})
 class TestComponent {
-  currentTplRef: TemplateRef<any>;
+  // TODO(issue/24571): remove '!'.
+  currentTplRef !: TemplateRef<any>;
   context: any = {foo: 'bar'};
   value = 'bar';
 }

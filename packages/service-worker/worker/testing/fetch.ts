@@ -7,6 +7,7 @@
  */
 
 export class MockBody implements Body {
+  readonly body !: ReadableStream;
   bodyUsed: boolean = false;
 
   constructor(public _body: string|null) {}
@@ -57,9 +58,14 @@ export class MockBody implements Body {
 
 export class MockHeaders implements Headers {
   map = new Map<string, string>();
+
+  [Symbol.iterator]() { return this.map[Symbol.iterator](); }
+
   append(name: string, value: string): void { this.map.set(name, value); }
 
   delete (name: string): void { this.map.delete(name); }
+
+  entries() { return this.map.entries(); }
 
   forEach(callback: Function): void { this.map.forEach(callback as any); }
 
@@ -67,10 +73,17 @@ export class MockHeaders implements Headers {
 
   has(name: string): boolean { return this.map.has(name); }
 
+  keys() { return this.map.keys(); }
+
   set(name: string, value: string): void { this.map.set(name, value); }
+
+  values() { return this.map.values(); }
 }
 
 export class MockRequest extends MockBody implements Request {
+  readonly isHistoryNavigation: boolean = false;
+  readonly isReloadNavigation: boolean = false;
+  readonly body !: ReadableStream;
   readonly cache: RequestCache = 'default';
   readonly credentials: RequestCredentials = 'omit';
   readonly destination: RequestDestination = 'document';
@@ -82,23 +95,26 @@ export class MockRequest extends MockBody implements Request {
   readonly redirect: RequestRedirect = 'error';
   readonly referrer: string = '';
   readonly referrerPolicy: ReferrerPolicy = 'no-referrer';
-  readonly type: RequestType = '';
+  readonly signal: AbortSignal = null as any;
+
   url: string;
 
   constructor(input: string|Request, init: RequestInit = {}) {
-    super(init !== undefined ? init.body || null : null);
+    super(init !== undefined ? (init.body as(string | null)) || null : null);
     if (typeof input !== 'string') {
       throw 'Not implemented';
     }
     this.url = input;
-    if (init.headers !== undefined) {
-      if (init.headers instanceof MockHeaders) {
-        this.headers = init.headers;
+    const headers = init.headers as{[key: string]: string};
+    if (headers !== undefined) {
+      if (headers instanceof MockHeaders) {
+        this.headers = headers;
       } else {
-        Object.keys(init.headers).forEach(header => {
-          this.headers.set(header, init.headers[header]);
-        });
+        Object.keys(headers).forEach(header => { this.headers.set(header, headers[header]); });
       }
+    }
+    if (init.cache !== undefined) {
+      this.cache = init.cache;
     }
     if (init.mode !== undefined) {
       this.mode = init.mode;
@@ -119,13 +135,13 @@ export class MockRequest extends MockBody implements Request {
 }
 
 export class MockResponse extends MockBody implements Response {
+  readonly trailer: Promise<Headers> = Promise.resolve(new MockHeaders());
   readonly headers: Headers = new MockHeaders();
   get ok(): boolean { return this.status >= 200 && this.status < 300; }
   readonly status: number;
   readonly statusText: string;
   readonly type: ResponseType = 'basic';
   readonly url: string = '';
-  readonly body: ReadableStream|null = null;
   readonly redirected: boolean = false;
 
   constructor(
@@ -134,13 +150,12 @@ export class MockResponse extends MockBody implements Response {
     super(typeof body === 'string' ? body : null);
     this.status = (init.status !== undefined) ? init.status : 200;
     this.statusText = init.statusText || 'OK';
-    if (init.headers !== undefined) {
-      if (init.headers instanceof MockHeaders) {
-        this.headers = init.headers;
+    const headers = init.headers as{[key: string]: string};
+    if (headers !== undefined) {
+      if (headers instanceof MockHeaders) {
+        this.headers = headers;
       } else {
-        Object.keys(init.headers).forEach(header => {
-          this.headers.set(header, init.headers[header]);
-        });
+        Object.keys(headers).forEach(header => { this.headers.set(header, headers[header]); });
       }
     }
     if (init.type !== undefined) {

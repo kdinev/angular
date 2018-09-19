@@ -6,8 +6,9 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
+import {ViewEncapsulation} from '../metadata/view';
 import {RendererType2} from '../render/api';
-import {SecurityContext} from '../security';
+import {SecurityContext} from '../sanitization/security';
 
 import {BindingDef, BindingFlags, ElementData, ElementHandleEventFn, NodeDef, NodeFlags, OutputDef, OutputType, QueryValueType, ViewData, ViewDefinitionFactory, asElementData} from './types';
 import {NOOP, calcBindingFlags, checkAndUpdateBinding, dispatchEvent, elementEventFullName, getParentRenderElement, resolveDefinition, resolveRendererType2, splitMatchedQueriesDsl, splitNamespace} from './util';
@@ -163,7 +164,11 @@ export function createElement(view: ViewData, renderHost: any, def: NodeDef): El
       renderer.appendChild(parentEl, el);
     }
   } else {
-    el = renderer.selectRootElement(rootSelectorOrNode);
+    // when using native Shadow DOM, do not clear the root element contents to allow slot projection
+    const preserveContent =
+        (!!elDef.componentRendererType &&
+         elDef.componentRendererType.encapsulation === ViewEncapsulation.ShadowDom);
+    el = renderer.selectRootElement(rootSelectorOrNode, preserveContent);
   }
   if (elDef.attrs) {
     for (let i = 0; i < elDef.attrs.length; i++) {

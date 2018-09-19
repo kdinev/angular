@@ -6,7 +6,8 @@
  * found in the LICENSE file at https://angular.io/license
  */
 export const ANY_STATE = '*';
-export declare type TransitionMatcherFn = (fromState: any, toState: any) => boolean;
+export declare type TransitionMatcherFn =
+    (fromState: any, toState: any, element: any, params: {[key: string]: any}) => boolean;
 
 export function parseTransitionExpr(
     transitionValue: string | TransitionMatcherFn, errors: string[]): TransitionMatcherFn[] {
@@ -65,13 +66,12 @@ function parseAnimationAlias(alias: string, errors: string[]): string|Transition
   }
 }
 
-const TRUE_BOOLEAN_VALUES = new Set<string>();
-TRUE_BOOLEAN_VALUES.add('true');
-TRUE_BOOLEAN_VALUES.add('1');
-
-const FALSE_BOOLEAN_VALUES = new Set<string>();
-FALSE_BOOLEAN_VALUES.add('false');
-FALSE_BOOLEAN_VALUES.add('0');
+// DO NOT REFACTOR ... keep the follow set instantiations
+// with the values intact (closure compiler for some reason
+// removes follow-up lines that add the values outside of
+// the constructor...
+const TRUE_BOOLEAN_VALUES = new Set<string>(['true', '1']);
+const FALSE_BOOLEAN_VALUES = new Set<string>(['false', '0']);
 
 function makeLambdaFromStates(lhs: string, rhs: string): TransitionMatcherFn {
   const LHS_MATCH_BOOLEAN = TRUE_BOOLEAN_VALUES.has(lhs) || FALSE_BOOLEAN_VALUES.has(lhs);

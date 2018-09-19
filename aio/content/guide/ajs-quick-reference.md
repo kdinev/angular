@@ -1,4 +1,4 @@
-# AngularJS to Angular Quick Reference
+# AngularJS to Angular Concepts: Quick Reference
 
 
 {@a top}
@@ -895,7 +895,7 @@ For more information on pipes, see [Pipes](guide/pipes).
       ### lowercase
 
       <code-example hideCopy>
-        &lt;div>{{movie.title | lowercase}}&lt;/div>
+        &lt;td>{{movie.title | lowercase}}&lt;/td>
       </code-example>
 
 
@@ -1076,7 +1076,7 @@ The Angular code is shown using TypeScript.
       * `imports`: specifies the list of other modules that this module depends upon
       * `declaration`: keeps track of your components, pipes, and directives.
 
-      For more information on modules, see [NgModules](guide/ngmodule).
+      For more information on modules, see [NgModules](guide/ngmodules).
     </td>
 
   </tr>
@@ -1254,9 +1254,9 @@ also encapsulate a style sheet within a specific component.
 
 
       ### Styles configuration
-      <code-example hideCopy path="ajs-quick-reference/.angular-cli.1.json" region="styles" linenums="false">
+      <code-example hideCopy path="ajs-quick-reference/.angular-cli.1.json" region="styles" linenums="false"></code-example>
 
-      With the Angular CLI, you can configure your global styles in the `.angular-cli.json` file.
+      With the Angular CLI, you can configure your global styles in the `angular.json` file.
       You can rename the extension to `.scss` to use sass.
 
       ### StyleUrls

@@ -11,7 +11,7 @@ import {ComponentFixture, TestBed, getTestBed} from '@angular/core/testing';
 import {getDOM} from '@angular/platform-browser/src/dom/dom_adapter';
 import {DomSanitizer} from '@angular/platform-browser/src/security/dom_sanitization_service';
 
-export function main() {
+{
   describe('jit', () => { declareTests({useJit: true}); });
 
   describe('no jit', () => { declareTests({useJit: false}); });
@@ -168,8 +168,9 @@ function declareTests({useJit}: {useJit: boolean}) {
       it('should escape unsafe properties if they are used in host bindings', () => {
         @Directive({selector: '[dirHref]'})
         class HrefDirective {
+          // TODO(issue/24571): remove '!'.
           @HostBinding('href') @Input()
-          dirHref: string;
+          dirHref !: string;
         }
 
         const template = `<a [dirHref]="ctxProp">Link Title</a>`;
@@ -183,8 +184,9 @@ function declareTests({useJit}: {useJit: boolean}) {
       it('should escape unsafe attributes if they are used in host bindings', () => {
         @Directive({selector: '[dirHref]'})
         class HrefDirective {
+          // TODO(issue/24571): remove '!'.
           @HostBinding('attr.href') @Input()
-          dirHref: string;
+          dirHref !: string;
         }
 
         const template = `<a [dirHref]="ctxProp">Link Title</a>`;

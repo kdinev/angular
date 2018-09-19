@@ -11,7 +11,7 @@ import {Attribute, Component, Directive} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
 
-export function main() {
+{
   describe('NgSwitch', () => {
     let fixture: ComponentFixture<any>;
 
@@ -133,9 +133,7 @@ export function main() {
             '</div>';
 
         TestBed.configureTestingModule({declarations: [TestDirective]});
-        TestBed.overrideComponent(TestComponent, {set: {template: template}})
-            .createComponent(TestComponent);
-        const fixture = TestBed.createComponent(TestComponent);
+        const fixture = createTestComponent(template);
         fixture.componentInstance.switchValue = 'a';
 
         fixture.detectChanges();

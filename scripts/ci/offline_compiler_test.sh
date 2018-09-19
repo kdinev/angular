@@ -2,17 +2,18 @@
 
 set -u -e -o pipefail
 
+# npm 5 symlinks from local file installations rather than copying files, but
+# webpack will not follow the symlinks.
+# We prefer to emulate how a user will install angular, so we `npm pack` the
+# packages, then install them from the resulting .tgz files later.
+ANGULAR_PKGS=$(npm pack dist/packages-dist/{common,forms,core,compiler,compiler-cli,platform-{browser,server},platform-browser-dynamic,router,http,animations} | awk "{ printf \"$PWD/\"; print }")
 
-# These ones can be `npm link`ed for fast development
-LINKABLE_PKGS=(
-  $(pwd)/dist/packages-dist/{common,forms,core,compiler,compiler-cli,platform-{browser,server},platform-browser-dynamic,router,http,animations}
-)
 
-TYPESCRIPT_2_4=typescript@2.4.x
 PKGS=(
-  reflect-metadata@0.1.8
-  zone.js@0.8.7
-  rxjs@5.4.2
+  $PWD/node_modules/typescript
+  $PWD/node_modules/reflect-metadata
+  $PWD/node_modules/rxjs
+  $PWD/node_modules/zone.js
   @types/{node@6.0.38,jasmine@2.2.33}
   jasmine@2.4.1
   webpack@2.1.0-beta.21
@@ -33,9 +34,8 @@ cp -v package.json $TMP
 (
   cd $TMP
   set -ex -o pipefail
-  npm install ${PKGS[*]} $TYPESCRIPT_2_4
-  # TODO(alexeagle): allow this to be npm link instead
-  npm install ${LINKABLE_PKGS[*]}
+  npm install ${PKGS[*]}
+  npm install ${ANGULAR_PKGS[*]}
 
   ./node_modules/.bin/tsc --version
   # Compile the compiler-cli third_party simulation.

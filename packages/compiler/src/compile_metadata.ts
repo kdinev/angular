@@ -18,7 +18,7 @@ import {splitAtColon, stringify} from './util';
 // group 3: "@trigger" from "@trigger"
 const HOST_REG_EXP = /^(?:(?:\[([^\]]+)\])|(?:\(([^\)]+)\)))|(\@[-\w]+)$/;
 
-function _sanitizeIdentifier(name: string): string {
+export function sanitizeIdentifier(name: string): string {
   return name.replace(/\W/g, '_');
 }
 
@@ -42,7 +42,7 @@ export function identifierName(compileIdentifier: CompileIdentifierMetadata | nu
     identifier = `anonymous_${_anonymousTypeIndex++}`;
     ref['__anonymousType'] = identifier;
   } else {
-    identifier = _sanitizeIdentifier(identifier);
+    identifier = sanitizeIdentifier(identifier);
   }
   return identifier;
 }
@@ -120,7 +120,7 @@ export interface CompileFactoryMetadata extends CompileIdentifierMetadata {
 }
 
 export function tokenName(token: CompileTokenMetadata) {
-  return token.value != null ? _sanitizeIdentifier(token.value) : identifierName(token.identifier);
+  return token.value != null ? sanitizeIdentifier(token.value) : identifierName(token.identifier);
 }
 
 export function tokenReference(token: CompileTokenMetadata) {
@@ -134,6 +134,19 @@ export function tokenReference(token: CompileTokenMetadata) {
 export interface CompileTokenMetadata {
   value?: any;
   identifier?: CompileIdentifierMetadata|CompileTypeMetadata;
+}
+
+export interface CompileInjectableMetadata {
+  symbol: StaticSymbol;
+  type: CompileTypeMetadata;
+
+  providedIn?: StaticSymbol;
+
+  useValue?: any;
+  useClass?: StaticSymbol;
+  useExisting?: StaticSymbol;
+  useFactory?: StaticSymbol;
+  deps?: any[];
 }
 
 /**
@@ -175,6 +188,8 @@ export class CompileStylesheetMetadata {
 export interface CompileTemplateSummary {
   ngContentSelectors: string[];
   encapsulation: ViewEncapsulation|null;
+  styles: string[];
+  animations: any[]|null;
 }
 
 /**
@@ -230,6 +245,8 @@ export class CompileTemplateMetadata {
     return {
       ngContentSelectors: this.ngContentSelectors,
       encapsulation: this.encapsulation,
+      styles: this.styles,
+      animations: this.animations
     };
   }
 }
@@ -254,6 +271,7 @@ export interface CompileDirectiveSummary extends CompileTypeSummary {
   providers: CompileProviderMetadata[];
   viewProviders: CompileProviderMetadata[];
   queries: CompileQueryMetadata[];
+  guards: {[key: string]: any};
   viewQueries: CompileQueryMetadata[];
   entryComponents: CompileEntryComponentMetadata[];
   changeDetection: ChangeDetectionStrategy|null;
@@ -268,8 +286,8 @@ export interface CompileDirectiveSummary extends CompileTypeSummary {
  */
 export class CompileDirectiveMetadata {
   static create({isHost, type, isComponent, selector, exportAs, changeDetection, inputs, outputs,
-                 host, providers, viewProviders, queries, viewQueries, entryComponents, template,
-                 componentViewType, rendererType, componentFactory}: {
+                 host, providers, viewProviders, queries, guards, viewQueries, entryComponents,
+                 template, componentViewType, rendererType, componentFactory}: {
     isHost: boolean,
     type: CompileTypeMetadata,
     isComponent: boolean,
@@ -282,6 +300,7 @@ export class CompileDirectiveMetadata {
     providers: CompileProviderMetadata[],
     viewProviders: CompileProviderMetadata[],
     queries: CompileQueryMetadata[],
+    guards: {[key: string]: any};
     viewQueries: CompileQueryMetadata[],
     entryComponents: CompileEntryComponentMetadata[],
     template: CompileTemplateMetadata,
@@ -336,6 +355,7 @@ export class CompileDirectiveMetadata {
       providers,
       viewProviders,
       queries,
+      guards,
       viewQueries,
       entryComponents,
       template,
@@ -358,6 +378,7 @@ export class CompileDirectiveMetadata {
   providers: CompileProviderMetadata[];
   viewProviders: CompileProviderMetadata[];
   queries: CompileQueryMetadata[];
+  guards: {[key: string]: any};
   viewQueries: CompileQueryMetadata[];
   entryComponents: CompileEntryComponentMetadata[];
 
@@ -367,10 +388,27 @@ export class CompileDirectiveMetadata {
   rendererType: StaticSymbol|object|null;
   componentFactory: StaticSymbol|object|null;
 
-  constructor({isHost,          type,      isComponent,       selector,      exportAs,
-               changeDetection, inputs,    outputs,           hostListeners, hostProperties,
-               hostAttributes,  providers, viewProviders,     queries,       viewQueries,
-               entryComponents, template,  componentViewType, rendererType,  componentFactory}: {
+  constructor({isHost,
+               type,
+               isComponent,
+               selector,
+               exportAs,
+               changeDetection,
+               inputs,
+               outputs,
+               hostListeners,
+               hostProperties,
+               hostAttributes,
+               providers,
+               viewProviders,
+               queries,
+               guards,
+               viewQueries,
+               entryComponents,
+               template,
+               componentViewType,
+               rendererType,
+               componentFactory}: {
     isHost: boolean,
     type: CompileTypeMetadata,
     isComponent: boolean,
@@ -385,6 +423,7 @@ export class CompileDirectiveMetadata {
     providers: CompileProviderMetadata[],
     viewProviders: CompileProviderMetadata[],
     queries: CompileQueryMetadata[],
+    guards: {[key: string]: any},
     viewQueries: CompileQueryMetadata[],
     entryComponents: CompileEntryComponentMetadata[],
     template: CompileTemplateMetadata|null,
@@ -406,6 +445,7 @@ export class CompileDirectiveMetadata {
     this.providers = _normalizeArray(providers);
     this.viewProviders = _normalizeArray(viewProviders);
     this.queries = _normalizeArray(queries);
+    this.guards = guards;
     this.viewQueries = _normalizeArray(viewQueries);
     this.entryComponents = _normalizeArray(entryComponents);
     this.template = template;
@@ -430,6 +470,7 @@ export class CompileDirectiveMetadata {
       providers: this.providers,
       viewProviders: this.viewProviders,
       queries: this.queries,
+      guards: this.guards,
       viewQueries: this.viewQueries,
       entryComponents: this.entryComponents,
       changeDetection: this.changeDetection,
@@ -488,6 +529,15 @@ export interface CompileNgModuleSummary extends CompileTypeSummary {
   providers: {provider: CompileProviderMetadata, module: CompileIdentifierMetadata}[];
   // Note: This is transitive.
   modules: CompileTypeMetadata[];
+}
+
+export class CompileShallowModuleMetadata {
+  // TODO(issue/24571): remove '!'.
+  type !: CompileTypeMetadata;
+
+  rawExports: any;
+  rawImports: any;
+  rawProviders: any;
 }
 
 /**

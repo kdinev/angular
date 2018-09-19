@@ -7,15 +7,16 @@
  */
 
 
-import {ɵglobal as global} from '@angular/core';
-import {ɵgetDOM as getDOM} from '@angular/platform-browser';
+import {Type, ɵglobal as global} from '@angular/core';
+import {ComponentFixture} from '@angular/core/testing';
+import {By, ɵgetDOM as getDOM} from '@angular/platform-browser';
 
 
 
 /**
  * Jasmine matchers that check Angular specific conditions.
  */
-export interface NgMatchers extends jasmine.Matchers {
+export interface NgMatchers<T = any> extends jasmine.Matchers<T> {
   /**
    * Expect the value to be a `Promise`.
    *
@@ -80,9 +81,14 @@ export interface NgMatchers extends jasmine.Matchers {
   toContainError(expected: any): boolean;
 
   /**
+   * Expect a component of the given type to show.
+   */
+  toContainComponent(expectedComponentType: Type<any>, expectationFailOutput?: any): boolean;
+
+  /**
    * Invert the matchers.
    */
-  not: NgMatchers;
+  not: NgMatchers<T>;
 }
 
 const _global = <any>(typeof window === 'undefined' ? global : window);
@@ -94,7 +100,7 @@ const _global = <any>(typeof window === 'undefined' ? global : window);
  *
  * {@example testing/ts/matchers.ts region='toHaveText'}
  */
-export const expect: (actual: any) => NgMatchers = <any>_global.expect;
+export const expect: <T = any>(actual: T) => NgMatchers<T> = _global.expect;
 
 
 // Some Map polyfills don't polyfill Map.toString correctly, which
@@ -112,29 +118,23 @@ export const expect: (actual: any) => NgMatchers = <any>_global.expect;
 };
 
 _global.beforeEach(function() {
-  jasmine.addMatchers({
-    // Custom handler for Map as Jasmine does not support it yet
-    toEqual: function(util) {
-      return {
-        compare: function(actual: any, expected: any) {
-          return {pass: util.equals(actual, expected, [compareMap])};
-        }
-      };
-
-      function compareMap(actual: any, expected: any): boolean {
-        if (actual instanceof Map) {
-          let pass = actual.size === expected.size;
-          if (pass) {
-            actual.forEach((v: any, k: any) => { pass = pass && util.equals(v, expected.get(k)); });
-          }
-          return pass;
-        } else {
-          // TODO(misko): we should change the return, but jasmine.d.ts is not null safe
-          return undefined !;
-        }
+  // Custom handler for Map as we use Jasmine 2.4, and support for maps is not
+  // added until Jasmine 2.6.
+  jasmine.addCustomEqualityTester(function compareMap(actual: any, expected: any): boolean {
+    if (actual instanceof Map) {
+      let pass = actual.size === expected.size;
+      if (pass) {
+        actual.forEach((v: any, k: any) => {
+          pass = pass && jasmine.matchersUtil.equals(v, expected.get(k));
+        });
       }
-    },
-
+      return pass;
+    } else {
+      // TODO(misko): we should change the return, but jasmine.d.ts is not null safe
+      return undefined !;
+    }
+  });
+  jasmine.addMatchers({
     toBePromise: function() {
       return {
         compare: function(actual: any) {
@@ -239,6 +239,29 @@ _global.beforeEach(function() {
                   missedMethods.join(', ');
             }
           };
+        }
+      };
+    },
+
+    toContainComponent: function() {
+      return {
+        compare: function(actualFixture: any, expectedComponentType: Type<any>) {
+          const failOutput = arguments[2];
+          const msgFn = (msg: string): string => [msg, failOutput].filter(Boolean).join(', ');
+
+          // verify correct actual type
+          if (!(actualFixture instanceof ComponentFixture)) {
+            return {
+              pass: false,
+              message: msgFn(
+                  `Expected actual to be of type \'ComponentFixture\' [actual=${actualFixture.constructor.name}]`)
+            };
+          }
+
+          const found = !!actualFixture.debugElement.query(By.directive(expectedComponentType));
+          return found ?
+              {pass: true} :
+              {pass: false, message: msgFn(`Expected ${expectedComponentType.name} to show`)};
         }
       };
     }

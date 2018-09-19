@@ -9,12 +9,11 @@
 import {AotSummaryResolver, GeneratedFile, StaticSymbolCache, StaticSymbolResolver, toTypeScript} from '@angular/compiler';
 import {MetadataBundler} from '@angular/compiler-cli/src/metadata/bundler';
 import {privateEntriesToIndex} from '@angular/compiler-cli/src/metadata/index_writer';
+import {extractSourceMap, originalPositionFor} from '@angular/compiler/testing/src/output/source_map_util';
 import {NodeFlags} from '@angular/core/src/view/index';
 import * as ts from 'typescript';
 
-import {extractSourceMap, originalPositionFor} from '../output/source_map_util';
-
-import {EmittingCompilerHost, MockAotCompilerHost, MockCompilerHost, MockDirectory, MockMetadataBundlerHost, arrayToMockDir, compile, expectNoDiagnostics, settings, setup, toMockFileArray} from './test_util';
+import {EmittingCompilerHost, MockAotCompilerHost, MockCompilerHost, MockDirectory, MockMetadataBundlerHost, arrayToMockDir, compile, expectNoDiagnostics, isInBazel, settings, setup, toMockFileArray} from './test_util';
 
 describe('compiler (unbundled Angular)', () => {
   let angularFiles = setup();
@@ -209,7 +208,7 @@ describe('compiler (unbundled Angular)', () => {
 
     });
 
-    it('should error if not all arguments of an @Injectable class can be resolved if strictInjectionParamters is true',
+    it('should error if not all arguments of an @Injectable class can be resolved if strictInjectionParameters is true',
        () => {
          const FILES: MockDirectory = {
            app: {
@@ -280,7 +279,7 @@ describe('compiler (unbundled Angular)', () => {
       };
       compile([FILES, angularFiles], {
         postCompile: program => {
-          const factorySource = program.getSourceFile('/app/app.ngfactory.ts');
+          const factorySource = program.getSourceFile('/app/app.ngfactory.ts') !;
           expect(factorySource.text).not.toContain('\'/app/app.ngfactory\'');
         }
       });
@@ -873,35 +872,44 @@ describe('compiler (unbundled Angular)', () => {
 });
 
 describe('compiler (bundled Angular)', () => {
-  setup({compileAngular: false, compileAnimations: false});
-
-  let angularFiles: Map<string, string>;
+  let angularFiles: Map<string, string> = setup();
 
   beforeAll(() => {
-    const emittingHost = new EmittingCompilerHost(['@angular/core/index'], {emitMetadata: false});
+    if (!isInBazel()) {
+      // If we are not using Bazel then we need to build these files explicitly
+      const emittingHost = new EmittingCompilerHost(['@angular/core/index'], {emitMetadata: false});
 
-    // Create the metadata bundled
-    const indexModule = emittingHost.effectiveName('@angular/core/index');
-    const bundler = new MetadataBundler(
-        indexModule, '@angular/core', new MockMetadataBundlerHost(emittingHost));
-    const bundle = bundler.getMetadataBundle();
-    const metadata = JSON.stringify(bundle.metadata, null, ' ');
-    const bundleIndexSource = privateEntriesToIndex('./index', bundle.privates);
-    emittingHost.override('@angular/core/bundle_index.ts', bundleIndexSource);
-    emittingHost.addWrittenFile(
-        '@angular/core/package.json', JSON.stringify({typings: 'bundle_index.d.ts'}));
-    emittingHost.addWrittenFile('@angular/core/bundle_index.metadata.json', metadata);
+      // Create the metadata bundled
+      const indexModule = emittingHost.effectiveName('@angular/core/index');
+      const bundler = new MetadataBundler(
+          indexModule, '@angular/core', new MockMetadataBundlerHost(emittingHost));
+      const bundle = bundler.getMetadataBundle();
+      const metadata = JSON.stringify(bundle.metadata, null, ' ');
+      const bundleIndexSource = privateEntriesToIndex('./index', bundle.privates);
+      emittingHost.override('@angular/core/bundle_index.ts', bundleIndexSource);
+      emittingHost.addWrittenFile(
+          '@angular/core/package.json', JSON.stringify({typings: 'bundle_index.d.ts'}));
+      emittingHost.addWrittenFile('@angular/core/bundle_index.metadata.json', metadata);
 
-    // Emit the sources
-    const bundleIndexName = emittingHost.effectiveName('@angular/core/bundle_index.ts');
-    const emittingProgram = ts.createProgram([bundleIndexName], settings, emittingHost);
-    emittingProgram.emit();
-    angularFiles = emittingHost.writtenAngularFiles();
+      // Emit the sources
+      const bundleIndexName = emittingHost.effectiveName('@angular/core/bundle_index.ts');
+      const emittingProgram = ts.createProgram([bundleIndexName], settings, emittingHost);
+      emittingProgram.emit();
+      angularFiles = emittingHost.writtenAngularFiles();
+    }
   });
 
   describe('Quickstart', () => {
     it('should compile', () => {
       const {genFiles} = compile([QUICKSTART, angularFiles]);
+      expect(genFiles.find(f => /app\.component\.ngfactory\.ts/.test(f.genFileUrl))).toBeDefined();
+      expect(genFiles.find(f => /app\.module\.ngfactory\.ts/.test(f.genFileUrl))).toBeDefined();
+    });
+
+    it('should support tsx', () => {
+      const tsOptions = {jsx: ts.JsxEmit.React};
+      const {genFiles} =
+          compile([QUICKSTART_TSX, angularFiles], /* options */ undefined, tsOptions);
       expect(genFiles.find(f => /app\.component\.ngfactory\.ts/.test(f.genFileUrl))).toBeDefined();
       expect(genFiles.find(f => /app\.module\.ngfactory\.ts/.test(f.genFileUrl))).toBeDefined();
     });
@@ -914,6 +922,11 @@ describe('compiler (bundled Angular)', () => {
       // Emit the library bundle
       const emittingHost =
           new EmittingCompilerHost(['/bolder/index.ts'], {emitMetadata: false, mockData: LIBRARY});
+
+      if (isInBazel()) {
+        // In bazel we can just add the angular files from the ones read during setup.
+        emittingHost.addFiles(angularFiles);
+      }
 
       // Create the metadata bundled
       const indexModule = '/bolder/public-api';
@@ -973,6 +986,34 @@ const QUICKSTART: MockDirectory = {
         export function toString(value: any): string {
           return  '';
         }
+      `
+    }
+  }
+};
+
+const QUICKSTART_TSX: MockDirectory = {
+  quickstart: {
+    app: {
+      // #20555
+      'app.component.tsx': `
+        import {Component} from '@angular/core';
+
+        @Component({
+          template: '<h1>Hello {{name}}</h1>'
+        })
+        export class AppComponent {
+          name = 'Angular';
+        }
+      `,
+      'app.module.ts': `
+        import { NgModule }      from '@angular/core';
+        import { AppComponent }  from './app.component';
+
+        @NgModule({
+          declarations: [ AppComponent ],
+          bootstrap:    [ AppComponent ]
+        })
+        export class AppModule { }
       `
     }
   }

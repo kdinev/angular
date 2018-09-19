@@ -65,6 +65,11 @@ describe('NgCompilerHost', () => {
           .toBe('@angular/core');
     });
 
+    it('should allow an import o a package whose name contains dot (e.g. @angular.io)', () => {
+      expect(host.fileNameToModuleName('/tmp/node_modules/@angular.io/core.d.ts', '/tmp/main.ts'))
+          .toBe('@angular.io/core');
+    });
+
     it('should use a package import when accessing a package from another package', () => {
       expect(host.fileNameToModuleName(
                  '/tmp/node_modules/mod1/index.d.ts', '/tmp/node_modules/mod2/index.d.ts'))
@@ -141,7 +146,7 @@ describe('NgCompilerHost', () => {
           .toBe('/tmp/src/a/child.d.ts');
     });
 
-    it('should allow to skip the containg file for package imports', () => {
+    it('should allow to skip the containing file for package imports', () => {
       const host =
           createHost({files: {'tmp': {'node_modules': {'@core': {'index.d.ts': dummyModule}}}}});
       expect(host.moduleNameToFileName('@core/index')).toBe('/tmp/node_modules/@core/index.d.ts');
@@ -284,6 +289,22 @@ describe('NgCompilerHost', () => {
       host2.getSourceFile('/tmp/src/index.ts', ts.ScriptTarget.Latest);
       expect(sf.referencedFiles.length).toBe(1);
       expect(sf.referencedFiles[0].fileName).toBe('main.ts');
+    });
+
+    it('should generate for tsx files', () => {
+      codeGenerator.findGeneratedFileNames.and.returnValue(['/tmp/src/index.ngfactory.ts']);
+      codeGenerator.generateFile.and.returnValue(aGeneratedFile);
+      const host = createHost({files: {'tmp': {'src': {'index.tsx': ``}}}});
+
+      const genSf = host.getSourceFile('/tmp/src/index.ngfactory.ts', ts.ScriptTarget.Latest);
+      expect(genSf.text).toBe(aGeneratedFileText);
+
+      const sf = host.getSourceFile('/tmp/src/index.tsx', ts.ScriptTarget.Latest);
+      expect(sf.referencedFiles[0].fileName).toBe('/tmp/src/index.ngfactory.ts');
+
+      // the codegen should have been cached
+      expect(codeGenerator.generateFile).toHaveBeenCalledTimes(1);
+      expect(codeGenerator.findGeneratedFileNames).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -82,6 +82,7 @@ const manifest: Manifest = {
       version: 1,
     },
   ],
+  navigationUrls: [],
   hashTable: tmpHashTableForFs(dist),
 };
 
@@ -114,7 +115,7 @@ function asyncWrap(fn: () => Promise<void>): (done: DoneFn) => void {
   return (done: DoneFn) => { fn().then(() => done(), err => done.fail(err)); };
 }
 
-export function main() {
+(function() {
   // Skip environments that don't support the minimum APIs needed to run the SW tests.
   if (!SwTestHarness.envIsSupported()) {
     return;
@@ -242,7 +243,7 @@ export function main() {
       });
     });
   });
-}
+})();
 
 async function makeRequest(scope: SwTestHarness, url: string, clientId?: string):
     Promise<string|null> {

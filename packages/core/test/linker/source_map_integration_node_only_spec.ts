@@ -8,19 +8,25 @@
 
 import {ResourceLoader} from '@angular/compiler';
 import {SourceMap} from '@angular/compiler/src/output/source_map';
-import {extractSourceMap, originalPositionFor} from '@angular/compiler/test/output/source_map_util';
+import {extractSourceMap, originalPositionFor} from '@angular/compiler/testing/src/output/source_map_util';
 import {MockResourceLoader} from '@angular/compiler/testing/src/resource_loader_mock';
 import {Attribute, Component, Directive, ErrorHandler, ɵglobal} from '@angular/core';
 import {getErrorLogger} from '@angular/core/src/errors';
 import {ComponentFixture, TestBed, fakeAsync, tick} from '@angular/core/testing';
 
-export function main() {
+{
   describe('jit source mapping', () => {
     let jitSpy: jasmine.Spy;
     let resourceLoader: MockResourceLoader;
 
     beforeEach(() => {
+      // Jasmine relies on methods on `Function.prototype`, so restore the prototype on the spy.
+      // Work around for: https://github.com/jasmine/jasmine/issues/1573
+      // TODO: Figure out a better way to retrieve the JIT sources, without spying on `Function`.
+      const originalProto = ɵglobal.Function.prototype;
       jitSpy = spyOn(ɵglobal, 'Function').and.callThrough();
+      ɵglobal.Function.prototype = originalProto;
+
       resourceLoader = new MockResourceLoader();
       TestBed.configureCompiler({providers: [{provide: ResourceLoader, useValue: resourceLoader}]});
     });

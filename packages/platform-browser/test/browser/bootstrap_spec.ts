@@ -7,12 +7,12 @@
  */
 
 import {isPlatformBrowser} from '@angular/common';
-import {APP_INITIALIZER, CUSTOM_ELEMENTS_SCHEMA, Compiler, Component, Directive, ErrorHandler, Inject, Input, LOCALE_ID, NgModule, OnDestroy, PLATFORM_ID, PLATFORM_INITIALIZER, Pipe, Provider, StaticProvider, VERSION, createPlatformFactory, ɵstringify as stringify} from '@angular/core';
+import {APP_INITIALIZER, CUSTOM_ELEMENTS_SCHEMA, Compiler, Component, Directive, ErrorHandler, Inject, Input, LOCALE_ID, NgModule, OnDestroy, PLATFORM_ID, PLATFORM_INITIALIZER, Pipe, Provider, StaticProvider, Type, VERSION, createPlatformFactory} from '@angular/core';
 import {ApplicationRef, destroyPlatform} from '@angular/core/src/application_ref';
 import {Console} from '@angular/core/src/console';
 import {ComponentRef} from '@angular/core/src/linker/component_factory';
 import {Testability, TestabilityRegistry} from '@angular/core/src/testability/testability';
-import {AsyncTestCompleter, Log, afterEach, beforeEach, beforeEachProviders, ddescribe, describe, iit, inject, it} from '@angular/core/testing/src/testing_internal';
+import {AsyncTestCompleter, Log, afterEach, beforeEach, beforeEachProviders, describe, fit, inject, it} from '@angular/core/testing/src/testing_internal';
 import {BrowserModule} from '@angular/platform-browser';
 import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
 import {getDOM} from '@angular/platform-browser/src/dom/dom_adapter';
@@ -79,8 +79,9 @@ class HelloUrlCmp {
 
 @Directive({selector: '[someDir]', host: {'[title]': 'someDir'}})
 class SomeDirective {
+  // TODO(issue/24571): remove '!'.
   @Input()
-  someDir: string;
+  someDir !: string;
 }
 
 @Pipe({name: 'somePipe'})
@@ -112,10 +113,11 @@ class DummyConsole implements Console {
 
 
 class TestModule {}
-function bootstrap(cmpType: any, providers: Provider[] = [], platformProviders: StaticProvider[] = [
-]): Promise<any> {
+function bootstrap(
+    cmpType: any, providers: Provider[] = [], platformProviders: StaticProvider[] = [],
+    imports: Type<any>[] = []): Promise<any> {
   @NgModule({
-    imports: [BrowserModule],
+    imports: [BrowserModule, ...imports],
     declarations: [cmpType],
     bootstrap: [cmpType],
     providers: providers,
@@ -126,11 +128,12 @@ function bootstrap(cmpType: any, providers: Provider[] = [], platformProviders: 
   return platformBrowserDynamic(platformProviders).bootstrapModule(TestModule);
 }
 
-export function main() {
+{
   let el: any /** TODO #9100 */, el2: any /** TODO #9100 */, testProviders: Provider[],
       lightDom: any /** TODO #9100 */;
 
   describe('bootstrap factory method', () => {
+    if (isNode) return;
     let compilerConsole: DummyConsole;
 
     beforeEachProviders(() => { return [Log]; });
@@ -160,7 +163,7 @@ export function main() {
        inject([AsyncTestCompleter], (done: AsyncTestCompleter) => {
          const logger = new MockConsole();
          const errorHandler = new ErrorHandler();
-         errorHandler._console = logger as any;
+         (errorHandler as any)._console = logger as any;
          expect(
              () => bootstrap(
                  HelloRootDirectiveIsNotCmp, [{provide: ErrorHandler, useValue: errorHandler}]))
@@ -172,7 +175,7 @@ export function main() {
        inject([AsyncTestCompleter], (async: AsyncTestCompleter) => {
          const logger = new MockConsole();
          const errorHandler = new ErrorHandler();
-         errorHandler._console = logger as any;
+         (errorHandler as any)._console = logger as any;
          bootstrap(NonExistentComp, [
            {provide: ErrorHandler, useValue: errorHandler}
          ]).then(null, (reason) => {
@@ -183,12 +186,47 @@ export function main() {
          });
        }));
 
+    it('should throw if no provider', inject([AsyncTestCompleter], (async: AsyncTestCompleter) => {
+         const logger = new MockConsole();
+         const errorHandler = new ErrorHandler();
+         (errorHandler as any)._console = logger as any;
+
+         class IDontExist {}
+
+         @Component({selector: 'cmp', template: 'Cmp'})
+         class CustomCmp {
+           constructor(iDontExist: IDontExist) {}
+         }
+
+         @Component({
+           selector: 'hello-app',
+           template: '<cmp></cmp>',
+         })
+         class RootCmp {
+         }
+
+         @NgModule({declarations: [CustomCmp], exports: [CustomCmp]})
+         class CustomModule {
+         }
+
+         bootstrap(RootCmp, [{provide: ErrorHandler, useValue: errorHandler}], [], [
+           CustomModule
+         ]).then(null, (e: Error) => {
+           expect(e.message).toContain(
+               'StaticInjectorError(TestModule)[CustomCmp -> IDontExist]: \n' +
+               '  StaticInjectorError(Platform: core)[CustomCmp -> IDontExist]: \n' +
+               '    NullInjectorError: No provider for IDontExist!');
+           async.done();
+           return null;
+         });
+       }));
+
     if (getDOM().supportsDOMEvents()) {
       it('should forward the error to promise when bootstrap fails',
          inject([AsyncTestCompleter], (async: AsyncTestCompleter) => {
            const logger = new MockConsole();
            const errorHandler = new ErrorHandler();
-           errorHandler._console = logger as any;
+           (errorHandler as any)._console = logger as any;
 
            const refPromise =
                bootstrap(NonExistentComp, [{provide: ErrorHandler, useValue: errorHandler}]);
@@ -203,7 +241,7 @@ export function main() {
          inject([AsyncTestCompleter], (async: AsyncTestCompleter) => {
            const logger = new MockConsole();
            const errorHandler = new ErrorHandler();
-           errorHandler._console = logger as any;
+           (errorHandler as any)._console = logger as any;
 
            const refPromise =
                bootstrap(NonExistentComp, [{provide: ErrorHandler, useValue: errorHandler}]);
@@ -218,7 +256,7 @@ export function main() {
 
     it('should create an injector promise', () => {
       const refPromise = bootstrap(HelloRootCmp, testProviders);
-      expect(refPromise).not.toBe(null);
+      expect(refPromise).toEqual(jasmine.any(Promise));
     });
 
     it('should set platform name to browser',

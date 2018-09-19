@@ -9,7 +9,7 @@
 import {CssRule, ShadowCss, processRules} from '@angular/compiler/src/shadow_css';
 import {normalizeCSS} from '@angular/platform-browser/testing/src/browser_util';
 
-export function main() {
+{
   describe('ShadowCss', function() {
 
     function s(css: string, contentAttr: string, hostAttr: string = '') {
@@ -299,6 +299,11 @@ export function main() {
           .toEqual('b[contenta] {c}/*# sourceMappingURL=data:x */');
       expect(s('b {c}/* #sourceMappingURL=data:x */', 'contenta'))
           .toEqual('b[contenta] {c}/* #sourceMappingURL=data:x */');
+    });
+
+    it('should keep sourceURL comments', () => {
+      expect(s('/*# sourceMappingURL=data:x */b {c}/*# sourceURL=xxx */', 'contenta'))
+          .toEqual('b[contenta] {c}/*# sourceMappingURL=data:x *//*# sourceURL=xxx */');
     });
   });
 

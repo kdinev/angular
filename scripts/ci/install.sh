@@ -37,7 +37,7 @@ travisFoldEnd "install-yarn"
 
 # Install all npm dependencies according to yarn.lock
 travisFoldStart "yarn-install"
-  node tools/npm/check-node-modules --purge || yarn install --frozen-lockfile --non-interactive
+  (node tools/npm/check-node-modules --purge && yarn postinstall) || yarn install --frozen-lockfile --non-interactive
 travisFoldEnd "yarn-install"
 
 
@@ -50,33 +50,19 @@ travisFoldEnd "bower-install"
 if [[ ${TRAVIS} &&
   ${CI_MODE} == "aio" ||
   ${CI_MODE} == "aio_e2e" ||
-  ${CI_MODE} == "aio_tools_test" ||
-  ${CI_MODE} == "aio_optional"
+  ${CI_MODE} == "aio_tools_test"
 ]]; then
   # angular.io: Install all yarn dependencies according to angular.io/yarn.lock
   travisFoldStart "yarn-install.aio"
     (
+      # HACK (don't submit with this): Build Angular
+      ./build.sh --packages=compiler,core,elements --examples=false
+
       cd ${PROJECT_ROOT}/aio
       yarn install --frozen-lockfile --non-interactive
     )
   travisFoldEnd "yarn-install.aio"
 fi
-
-# Install bazel
-if [[ ${TRAVIS} && (${CI_MODE} == "bazel" || ${CI_MODE} == "e2e_2") ]]; then
-  travisFoldStart "bazel-install"
-  (
-    mkdir tmp
-    cd tmp
-    curl --location --compressed https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh > bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
-    chmod +x bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
-    ./bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh --user
-    cd ..
-    rm -rf tmp
-  )
-  travisFoldEnd "bazel-install"
-fi
-
 
 # Install Chromium
 if [[ ${TRAVIS} &&
@@ -84,8 +70,7 @@ if [[ ${TRAVIS} &&
   ${CI_MODE} == "e2e" ||
   ${CI_MODE} == "e2e_2" ||
   ${CI_MODE} == "aio" ||
-  ${CI_MODE} == "aio_e2e" ||
-  ${CI_MODE} == "aio_optional"
+  ${CI_MODE} == "aio_e2e"
 ]]; then
   travisFoldStart "install-chromium"
     (

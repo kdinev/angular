@@ -19,7 +19,7 @@ const sameModuleIdentifier = new o.ExternalReference(null, 'someLocalId', null);
 
 const externalModuleIdentifier = new o.ExternalReference(anotherModuleUrl, 'someExternalId', null);
 
-export function main() {
+{
   // Not supported features of our OutputAst in TS:
   // - real `const` like in Dart
   // - final fields
@@ -414,10 +414,38 @@ export function main() {
           .toEqual('var a:{[key: string]:number} = (null as any);');
     });
 
-    it('should support a preamble', () => {
-      expect(emitStmt(o.variable('a').toStmt(), '/* SomePreamble */')).toBe([
-        '/* SomePreamble */', 'a;'
-      ].join('\n'));
+    describe('comments', () => {
+      it('should support a preamble', () => {
+        expect(emitStmt(o.variable('a').toStmt(), '/* SomePreamble */')).toBe([
+          '/* SomePreamble */', 'a;'
+        ].join('\n'));
+      });
+
+      it('should support singleline comments', () => {
+        expect(emitStmt(new o.CommentStmt('Simple comment'))).toBe('// Simple comment');
+      });
+
+      it('should support multiline comments', () => {
+        expect(emitStmt(new o.CommentStmt('Multiline comment', true)))
+            .toBe('/* Multiline comment */');
+        expect(emitStmt(new o.CommentStmt(`Multiline\ncomment`, true)))
+            .toBe(`/* Multiline\ncomment */`);
+      });
+
+      it('should support JSDoc comments', () => {
+        expect(emitStmt(new o.JSDocCommentStmt([{text: 'Intro comment'}])))
+            .toBe(`/**\n * Intro comment\n */`);
+        expect(emitStmt(new o.JSDocCommentStmt([
+          {tagName: o.JSDocTagName.Desc, text: 'description'}
+        ]))).toBe(`/**\n * @desc description\n */`);
+        expect(emitStmt(new o.JSDocCommentStmt([
+          {text: 'Intro comment'},
+          {tagName: o.JSDocTagName.Desc, text: 'description'},
+          {tagName: o.JSDocTagName.Id, text: '{number} identifier 123'},
+        ])))
+            .toBe(
+                `/**\n * Intro comment\n * @desc description\n * @id {number} identifier 123\n */`);
+      });
     });
 
     describe('emitter context', () => {

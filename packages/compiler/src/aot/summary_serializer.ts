@@ -11,7 +11,7 @@ import {Summary, SummaryResolver} from '../summary_resolver';
 import {OutputContext, ValueTransformer, ValueVisitor, visitValue} from '../util';
 
 import {StaticSymbol, StaticSymbolCache} from './static_symbol';
-import {ResolvedStaticSymbol, StaticSymbolResolver} from './static_symbol_resolver';
+import {ResolvedStaticSymbol, StaticSymbolResolver, unwrapResolvedMetadata} from './static_symbol_resolver';
 import {isLoweredSymbol, ngfactoryFilePath, summaryForJitFileName, summaryForJitName} from './util';
 
 export function serializeSummaries(
@@ -222,6 +222,24 @@ class ToJsonSerializer extends ValueTransformer {
   }
 
   /**
+   * Strip line and character numbers from ngsummaries.
+   * Emitting them causes white spaces changes to retrigger upstream
+   * recompilations in bazel.
+   * TODO: find out a way to have line and character numbers in errors without
+   * excessive recompilation in bazel.
+   */
+  visitStringMap(map: {[key: string]: any}, context: any): any {
+    if (map['__symbolic'] === 'resolved') {
+      return visitValue(map.symbol, this, context);
+    }
+    if (map['__symbolic'] === 'error') {
+      delete map['line'];
+      delete map['character'];
+    }
+    return super.visitStringMap(map, context);
+  }
+
+  /**
    * Returns null if the options.resolveValue is true, and the summary for the symbol
    * resolved to a type or could not be resolved.
    */
@@ -403,7 +421,8 @@ class ForJitSerializer {
 }
 
 class FromJsonDeserializer extends ValueTransformer {
-  private symbols: StaticSymbol[];
+  // TODO(issue/24571): remove '!'.
+  private symbols !: StaticSymbol[];
 
   constructor(
       private symbolCache: StaticSymbolCache,
@@ -453,10 +472,10 @@ function isCall(metadata: any): boolean {
 }
 
 function isFunctionCall(metadata: any): boolean {
-  return isCall(metadata) && metadata.expression instanceof StaticSymbol;
+  return isCall(metadata) && unwrapResolvedMetadata(metadata.expression) instanceof StaticSymbol;
 }
 
 function isMethodCallOnVariable(metadata: any): boolean {
   return isCall(metadata) && metadata.expression && metadata.expression.__symbolic === 'select' &&
-      metadata.expression.expression instanceof StaticSymbol;
+      unwrapResolvedMetadata(metadata.expression.expression) instanceof StaticSymbol;
 }

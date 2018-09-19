@@ -17,7 +17,7 @@ import {createMessageDiagnostic} from './transformers/util';
 
 const TS_EXT = /\.ts$/;
 
-export type Diagnostics = Array<ts.Diagnostic|api.Diagnostic>;
+export type Diagnostics = ReadonlyArray<ts.Diagnostic|api.Diagnostic>;
 
 export function filterErrorsAndWarnings(diagnostics: Diagnostics): Diagnostics {
   return diagnostics.filter(d => d.category !== ts.DiagnosticCategory.Message);
@@ -186,6 +186,7 @@ export function exitCodeFromResult(diags: Diagnostics | undefined): number {
 }
 
 export function performCompilation({rootNames, options, host, oldProgram, emitCallback,
+                                    mergeEmitResultsCallback,
                                     gatherDiagnostics = defaultGatherDiagnostics,
                                     customTransformers, emitFlags = api.EmitFlags.Default}: {
   rootNames: string[],
@@ -193,13 +194,14 @@ export function performCompilation({rootNames, options, host, oldProgram, emitCa
   host?: api.CompilerHost,
   oldProgram?: api.Program,
   emitCallback?: api.TsEmitCallback,
+  mergeEmitResultsCallback?: api.TsMergeEmitResultsCallback,
   gatherDiagnostics?: (program: api.Program) => Diagnostics,
   customTransformers?: api.CustomTransformers,
   emitFlags?: api.EmitFlags
 }): PerformCompilationResult {
   let program: api.Program|undefined;
   let emitResult: ts.EmitResult|undefined;
-  let allDiagnostics: Diagnostics = [];
+  let allDiagnostics: Array<ts.Diagnostic|api.Diagnostic> = [];
   try {
     if (!host) {
       host = ng.createCompilerHost({options});
@@ -216,7 +218,8 @@ export function performCompilation({rootNames, options, host, oldProgram, emitCa
     }
 
     if (!hasErrors(allDiagnostics)) {
-      emitResult = program !.emit({emitCallback, customTransformers, emitFlags});
+      emitResult =
+          program !.emit({emitCallback, mergeEmitResultsCallback, customTransformers, emitFlags});
       allDiagnostics.push(...emitResult.diagnostics);
       return {diagnostics: allDiagnostics, program, emitResult};
     }
@@ -240,7 +243,7 @@ export function performCompilation({rootNames, options, host, oldProgram, emitCa
   }
 }
 function defaultGatherDiagnostics(program: api.Program): Diagnostics {
-  const allDiagnostics: Diagnostics = [];
+  const allDiagnostics: Array<ts.Diagnostic|api.Diagnostic> = [];
 
   function checkDiagnostics(diags: Diagnostics | undefined) {
     if (diags) {
@@ -257,7 +260,7 @@ function defaultGatherDiagnostics(program: api.Program): Diagnostics {
 
   // Check syntactic diagnostics
   checkOtherDiagnostics =
-      checkOtherDiagnostics && checkDiagnostics(program.getTsSyntacticDiagnostics());
+      checkOtherDiagnostics && checkDiagnostics(program.getTsSyntacticDiagnostics() as Diagnostics);
 
   // Check TypeScript semantic and Angular structure diagnostics
   checkOtherDiagnostics =
@@ -267,7 +270,7 @@ function defaultGatherDiagnostics(program: api.Program): Diagnostics {
 
   // Check Angular semantic diagnostics
   checkOtherDiagnostics =
-      checkOtherDiagnostics && checkDiagnostics(program.getNgSemanticDiagnostics());
+      checkOtherDiagnostics && checkDiagnostics(program.getNgSemanticDiagnostics() as Diagnostics);
 
   return allDiagnostics;
 }

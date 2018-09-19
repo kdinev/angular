@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Component, ComponentRef, Renderer2, RendererFactory2, RendererType2, RootRenderer} from '@angular/core';
+import {Component, ComponentRef, Renderer2, RendererFactory2, RendererType2, destroyPlatform} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 import {platformBrowserDynamicTesting} from '@angular/platform-browser-dynamic/testing';
 import {getDOM} from '@angular/platform-browser/src/dom/dom_adapter';
@@ -25,17 +25,20 @@ import {PairedMessageBuses, createPairedMessageBuses} from '../shared/web_worker
 
 let lastCreatedRenderer: Renderer2;
 
-export function main() {
+{
   describe('Web Worker Renderer v2', () => {
     // Don't run on server...
     if (!getDOM().supportsDOMEvents()) return;
     // TODO(tbosch): investigate why this is failing on iOS7 for unrelated reasons
     // Note: it's hard to debug this as SauceLabs starts with iOS8. Maybe drop
-    // iOS7 alltogether?
+    // iOS7 altogether?
     if (browserDetection.isIOS7) return;
 
     let uiRenderStore: RenderStore;
     let wwRenderStore: RenderStore;
+
+    beforeEach(() => destroyPlatform());
+    afterEach(() => destroyPlatform());
 
     beforeEach(() => {
       // UI side
@@ -98,7 +101,7 @@ export function main() {
                  .createComponent(MyComp2);
 
          const checkSetters = (componentRef: ComponentRef<any>, workerEl: any) => {
-           expect(lastCreatedRenderer).not.toEqual(null);
+           expect(lastCreatedRenderer).not.toBeNull();
 
            const el = getRenderElement(workerEl);
            lastCreatedRenderer.setProperty(workerEl, 'tabIndex', 1);
@@ -184,10 +187,10 @@ function createWebWorkerBrokerFactory(
   const wwMessageBus = messageBuses.worker;
 
   // set up the worker side
-  const wwBrokerFactory = new ClientMessageBrokerFactory(wwMessageBus, wwSerializer);
+  const wwBrokerFactory = new (ClientMessageBrokerFactory as any)(wwMessageBus, wwSerializer);
 
   // set up the ui side
-  const uiBrokerFactory = new ServiceMessageBrokerFactory(uiMessageBus, uiSerializer);
+  const uiBrokerFactory = new (ServiceMessageBrokerFactory as any)(uiMessageBus, uiSerializer);
   const renderer = new MessageBasedRenderer2(
       uiBrokerFactory, uiMessageBus, uiSerializer, uiRenderStore, domRendererFactory);
   renderer.start();
@@ -213,4 +216,9 @@ class RenderFactory extends WebWorkerRendererFactory2 {
     lastCreatedRenderer = super.createRenderer(element, type);
     return lastCreatedRenderer;
   }
+}
+
+function isOldIE() {
+  // note that this only applies to older IEs (not edge)
+  return (window as any).document['documentMode'] ? true : false;
 }

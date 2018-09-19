@@ -27,10 +27,6 @@
  * and executed before the rest of the application files are executed.
  */
 
-/** HACK: force import of environment.ts/environment.prod.ts to load env specific polyfills */
-import './environments/environment';
-
-
 /** ALL Firefox browsers require the following to support `@angular/animation`. **/
 // import 'web-animations-js';  // Run `npm install --save web-animations-js`.
 
@@ -40,7 +36,8 @@ import './environments/environment';
  * Zone JS is required by Angular itself.
  */
 import 'zone.js/dist/zone';  // Included with Angular CLI.
-
+import '@webcomponents/custom-elements'; //  Custom Elements Polyfill
+import '@webcomponents/custom-elements/src/native-shim';
 
 
 /***************************************************************************************************

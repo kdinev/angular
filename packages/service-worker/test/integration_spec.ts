@@ -6,11 +6,10 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Observable} from 'rxjs/Observable';
-import {take} from 'rxjs/operator/take';
-import {toPromise} from 'rxjs/operator/toPromise';
+import {Observable} from 'rxjs';
+import {take} from 'rxjs/operators';
 
-import {NgswCommChannel, UpdateAvailableEvent} from '../src/low_level';
+import {NgswCommChannel} from '../src/low_level';
 import {SwPush} from '../src/push';
 import {SwUpdate} from '../src/update';
 import {MockServiceWorkerContainer, MockServiceWorkerRegistration} from '../testing/mock';
@@ -28,8 +27,7 @@ const dist = new MockFileSystemBuilder().addFile('/only.txt', 'this is only').bu
 const distUpdate = new MockFileSystemBuilder().addFile('/only.txt', 'this is only v2').build();
 
 function obsToSinglePromise<T>(obs: Observable<T>): Promise<T> {
-  const takeOne = take.call(obs, 1);
-  return toPromise.call(takeOne);
+  return obs.pipe(take(1)).toPromise();
 }
 
 const manifest: Manifest = {
@@ -43,6 +41,7 @@ const manifest: Manifest = {
     urls: ['/only.txt'],
     patterns: [],
   }],
+  navigationUrls: [],
   hashTable: tmpHashTableForFs(dist),
 };
 
@@ -57,6 +56,7 @@ const manifestUpdate: Manifest = {
     urls: ['/only.txt'],
     patterns: [],
   }],
+  navigationUrls: [],
   hashTable: tmpHashTableForFs(distUpdate),
 };
 
@@ -65,7 +65,7 @@ const server = new MockServerStateBuilder().withStaticFiles(dist).withManifest(m
 const serverUpdate =
     new MockServerStateBuilder().withStaticFiles(distUpdate).withManifest(manifestUpdate).build();
 
-export function main() {
+(function() {
   // Skip environments that don't support the minimum APIs needed to run the SW tests.
   if (!SwTestHarness.envIsSupported()) {
     return;
@@ -90,7 +90,7 @@ export function main() {
       mock.messages.subscribe(msg => { scope.handleMessage(msg, 'default'); });
 
       mock.setupSw();
-      reg = await mock.mockRegistration;
+      reg = mock.mockRegistration !;
 
       await Promise.all(scope.handleFetch(new MockRequest('/only.txt'), 'default'));
       await driver.initialized;
@@ -129,4 +129,4 @@ export function main() {
       await gotPushNotice;
     });
   });
-}
+})();

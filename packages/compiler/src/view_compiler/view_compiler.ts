@@ -8,7 +8,7 @@
 
 import {CompileDirectiveMetadata, CompilePipeSummary, rendererTypeName, tokenReference, viewClassName} from '../compile_metadata';
 import {CompileReflector} from '../compile_reflector';
-import {BuiltinConverter, EventHandlerVars, LocalResolver, convertActionBinding, convertPropertyBinding, convertPropertyBindingBuiltins} from '../compiler_util/expression_converter';
+import {BindingForm, BuiltinConverter, EventHandlerVars, LocalResolver, convertActionBinding, convertPropertyBinding, convertPropertyBindingBuiltins} from '../compiler_util/expression_converter';
 import {ArgumentType, BindingFlags, ChangeDetectionStrategy, NodeFlags, QueryBindingType, QueryValueType, ViewFlags} from '../core';
 import {AST, ASTWithSource, Interpolation} from '../expression_parser/ast';
 import {Identifiers} from '../identifiers';
@@ -859,7 +859,7 @@ class ViewBuilder implements TemplateAstVisitor, LocalResolver {
         const bindingId = `${updateBindingCount++}`;
         const nameResolver = context === COMP_VAR ? self : null;
         const {stmts, currValExpr} =
-            convertPropertyBinding(nameResolver, context, value, bindingId);
+            convertPropertyBinding(nameResolver, context, value, bindingId, BindingForm.General);
         updateStmts.push(...stmts.map(
             (stmt: o.Statement) => o.applySourceSpanToStatementIfNeeded(stmt, sourceSpan)));
         return o.applySourceSpanToExpressionIfNeeded(currValExpr, sourceSpan);
@@ -940,7 +940,8 @@ function needsAdditionalRootNode(astNodes: TemplateAst[]): boolean {
 
 
 function elementBindingDef(inputAst: BoundElementPropertyAst, dirAst: DirectiveAst): o.Expression {
-  switch (inputAst.type) {
+  const inputType = inputAst.type;
+  switch (inputType) {
     case PropertyBindingType.Attribute:
       return o.literalArr([
         o.literal(BindingFlags.TypeElementAttribute), o.literal(inputAst.name),
@@ -965,6 +966,13 @@ function elementBindingDef(inputAst: BoundElementPropertyAst, dirAst: DirectiveA
       return o.literalArr([
         o.literal(BindingFlags.TypeElementStyle), o.literal(inputAst.name), o.literal(inputAst.unit)
       ]);
+    default:
+      // This default case is not needed by TypeScript compiler, as the switch is exhaustive.
+      // However Closure Compiler does not understand that and reports an error in typed mode.
+      // The `throw new Error` below works around the problem, and the unexpected: never variable
+      // makes sure tsc still checks this code is unreachable.
+      const unexpected: never = inputType;
+      throw new Error(`unexpected ${unexpected}`);
   }
 }
 

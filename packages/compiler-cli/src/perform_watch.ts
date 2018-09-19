@@ -161,7 +161,7 @@ export function performWatchCompilation(host: PerformWatchHost):
       const originalWriteFileCallback = cachedCompilerHost.writeFile;
       cachedCompilerHost.writeFile = function(
           fileName: string, data: string, writeByteOrderMark: boolean,
-          onError?: (message: string) => void, sourceFiles?: ts.SourceFile[]) {
+          onError?: (message: string) => void, sourceFiles: ReadonlyArray<ts.SourceFile> = []) {
         ingoreFilesForWatch.add(path.normalize(fileName));
         return originalWriteFileCallback(fileName, data, writeByteOrderMark, onError, sourceFiles);
       };
@@ -200,7 +200,7 @@ export function performWatchCompilation(host: PerformWatchHost):
       rootNames: cachedOptions.rootNames,
       options: cachedOptions.options,
       host: cachedCompilerHost,
-      oldProgram: cachedProgram,
+      oldProgram: oldProgram,
       emitCallback: host.createEmitCallback(cachedOptions.options)
     });
 

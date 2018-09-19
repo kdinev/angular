@@ -86,8 +86,9 @@ class TestViewProvidersComp {
 
 @Directive({selector: '[someDir]', host: {'[title]': 'someDir'}})
 class SomeDirective {
+  // TODO(issue/24571): remove '!'.
   @Input()
-  someDir: string;
+  someDir !: string;
 }
 
 @Pipe({name: 'somePipe'})
@@ -103,12 +104,14 @@ class CompUsingModuleDirectiveAndPipe {
 class SomeLibModule {
 }
 
-@Component(
-    {selector: 'comp', templateUrl: '/base/packages/platform-browser/test/static_assets/test.html'})
+@Component({
+  selector: 'comp',
+  templateUrl: '/base/angular/packages/platform-browser/test/static_assets/test.html'
+})
 class CompWithUrlTemplate {
 }
 
-export function main() {
+{
   describe('public testing API', () => {
     describe('using the async helper with context passing', () => {
       beforeEach(function() { this.actuallyDone = false; });
@@ -307,7 +310,7 @@ export function main() {
         it('should allow to createSync components with templateUrl after explicit async compilation',
            () => {
              const fixture = TestBed.createComponent(CompWithUrlTemplate);
-             expect(fixture.nativeElement).toHaveText('from external template\n');
+             expect(fixture.nativeElement).toHaveText('from external template');
            });
       });
 
@@ -376,7 +379,8 @@ export function main() {
             TestBed
                 .overrideComponent(
                     SomeComponent, {set: {selector: 'comp', template: `{{'hello' | somePipe}}`}})
-                .overridePipe(SomePipe, {set: {name: 'somePipe'}});
+                .overridePipe(SomePipe, {set: {name: 'somePipe'}})
+                .overridePipe(SomePipe, {add: {pure: false}});
           });
           it('should work', () => {
             const compFixture = TestBed.createComponent(SomeComponent);
@@ -725,8 +729,9 @@ export function main() {
           class TestDir {
             constructor() { testDir = this; }
 
+            // TODO(issue/24571): remove '!'.
             @Input('test')
-            test: string;
+            test !: string;
           }
 
           TestBed.overrideTemplateUsingTestingModule(
@@ -804,7 +809,7 @@ export function main() {
 
     describe('errors', () => {
       let originalJasmineIt: (description: string, func: () => void) => jasmine.Spec;
-      let originalJasmineBeforeEach: (beforeEachFunction: () => void) => void;
+      let originalJasmineBeforeEach: (beforeEachFunction: (done: DoneFn) => void) => void;
 
       const patchJasmineIt = () => {
         let resolve: (result: any) => void;

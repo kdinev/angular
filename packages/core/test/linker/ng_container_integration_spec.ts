@@ -12,7 +12,7 @@ import {TestBed} from '@angular/core/testing';
 import {getDOM} from '@angular/platform-browser/src/dom/dom_adapter';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
 
-export function main() {
+{
   describe('jit', () => { declareTests({useJit: true}); });
   describe('no jit', () => { declareTests({useJit: false}); });
 }
@@ -161,16 +161,20 @@ class TextDirective {
 
 @Component({selector: 'needs-content-children', template: ''})
 class NeedsContentChildren implements AfterContentInit {
-  @ContentChildren(TextDirective) textDirChildren: QueryList<TextDirective>;
-  numberOfChildrenAfterContentInit: number;
+  // TODO(issue/24571): remove '!'.
+  @ContentChildren(TextDirective) textDirChildren !: QueryList<TextDirective>;
+  // TODO(issue/24571): remove '!'.
+  numberOfChildrenAfterContentInit !: number;
 
   ngAfterContentInit() { this.numberOfChildrenAfterContentInit = this.textDirChildren.length; }
 }
 
 @Component({selector: 'needs-view-children', template: '<div text></div>'})
 class NeedsViewChildren implements AfterViewInit {
-  @ViewChildren(TextDirective) textDirChildren: QueryList<TextDirective>;
-  numberOfChildrenAfterViewInit: number;
+  // TODO(issue/24571): remove '!'.
+  @ViewChildren(TextDirective) textDirChildren !: QueryList<TextDirective>;
+  // TODO(issue/24571): remove '!'.
+  numberOfChildrenAfterViewInit !: number;
 
   ngAfterViewInit() { this.numberOfChildrenAfterViewInit = this.textDirChildren.length; }
 }

@@ -36,13 +36,14 @@ export class ReflectiveDependency {
 const _EMPTY_LIST: any[] = [];
 
 /**
- * An internal resolved representation of a {@link Provider} used by the {@link Injector}.
+ * An internal resolved representation of a `Provider` used by the `Injector`.
  *
- * It is usually created automatically by `Injector.resolveAndCreate`.
+ * @usageNotes
+ * This is usually created automatically by `Injector.resolveAndCreate`.
  *
  * It can be created manually, as follows:
  *
- * ### Example ([live demo](http://plnkr.co/edit/RfEnhh8kUEI0G3qsnIeT?p%3Dpreview&p=preview))
+ * ### Example
  *
  * ```typescript
  * var resolvedProviders = Injector.resolve([{ provide: 'message', useValue: 'Hello' }]);
@@ -71,16 +72,17 @@ export interface ResolvedReflectiveProvider {
 }
 
 export class ResolvedReflectiveProvider_ implements ResolvedReflectiveProvider {
+  readonly resolvedFactory: ResolvedReflectiveFactory;
+
   constructor(
       public key: ReflectiveKey, public resolvedFactories: ResolvedReflectiveFactory[],
-      public multiProvider: boolean) {}
-
-  get resolvedFactory(): ResolvedReflectiveFactory { return this.resolvedFactories[0]; }
+      public multiProvider: boolean) {
+    this.resolvedFactory = this.resolvedFactories[0];
+  }
 }
 
 /**
- * An internal resolved representation of a factory function created by resolving {@link
- * Provider}.
+ * An internal resolved representation of a factory function created by resolving `Provider`.
  * @experimental
  */
 export class ResolvedReflectiveFactory {
@@ -121,10 +123,10 @@ function resolveReflectiveFactory(provider: NormalizedProvider): ResolvedReflect
 }
 
 /**
- * Converts the {@link Provider} into {@link ResolvedProvider}.
+ * Converts the `Provider` into `ResolvedProvider`.
  *
- * {@link Injector} internally only uses {@link ResolvedProvider}, {@link Provider} contains
- * convenience provider syntax.
+ * `Injector` internally only uses `ResolvedProvider`, `Provider` contains convenience provider
+ * syntax.
  */
 function resolveReflectiveProvider(provider: NormalizedProvider): ResolvedReflectiveProvider {
   return new ResolvedReflectiveProvider_(
@@ -143,9 +145,8 @@ export function resolveReflectiveProviders(providers: Provider[]): ResolvedRefle
 }
 
 /**
- * Merges a list of ResolvedProviders into a list where
- * each key is contained exactly once and multi providers
- * have been merged.
+ * Merges a list of ResolvedProviders into a list where each key is contained exactly once and
+ * multi providers have been merged.
  */
 export function mergeResolvedReflectiveProviders(
     providers: ResolvedReflectiveProvider[],

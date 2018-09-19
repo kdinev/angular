@@ -182,7 +182,7 @@ export class DuplicatePipe2 implements PipeTransform {
 class TestComp {
 }
 
-export function main() {
+(function() {
   function createComponentFixture<T>(
       template: string, providers?: Provider[] | null, comp?: Type<T>): ComponentFixture<T> {
     if (!comp) {
@@ -659,7 +659,7 @@ export function main() {
         TestBed.configureTestingModule({declarations: [OptionallyNeedsDirective]});
         const el = createComponent('<div optionallyNeedsDirective></div>');
         const d = el.children[0].injector.get(OptionallyNeedsDirective);
-        expect(d.dependency).toEqual(null);
+        expect(d.dependency).toBeNull();
       });
 
       it('should instantiate directives that depends on the host component', () => {
@@ -932,7 +932,7 @@ export function main() {
       });
     });
   });
-}
+})();
 
 class TestValue {
   constructor(public value: string) {}

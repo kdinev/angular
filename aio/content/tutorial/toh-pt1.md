@@ -12,7 +12,7 @@ Using the Angular CLI, generate a new component named `heroes`.
   ng generate component heroes
 </code-example>
 
-The CLI creates a new folder, `src/app/heroes/` and generates
+The CLI creates a new folder, `src/app/heroes/`, and generates
 the three files of the  `HeroesComponent`.
 
 The `HeroesComponent` class file is as follows:
@@ -29,7 +29,7 @@ and annotate the component class with `@Component`.
 
 The CLI generated three metadata properties:
 
-1. `selector`&mdash; the components CSS element selector
+1. `selector`&mdash; the component's CSS element selector
 1. `templateUrl`&mdash; the location of the component's template file.
 1. `styleUrls`&mdash; the location of the component's private CSS styles.
 
@@ -38,7 +38,7 @@ The CLI generated three metadata properties:
 The [CSS element selector](https://developer.mozilla.org/en-US/docs/Web/CSS/Type_selectors),
 `'app-heroes'`, matches the name of the HTML element that identifies this component within a parent component's template.
 
-The `ngOnInit` is a [lifecycle hook](guide/lifecycle-hooks#oninit) 
+The `ngOnInit` is a [lifecycle hook](guide/lifecycle-hooks#oninit). 
 Angular calls `ngOnInit` shortly after creating a component.
 It's a good place to put initialization logic.
 
@@ -108,7 +108,7 @@ and show both `id` and `name` in a details layout like this:
   title="heroes.component.html (HeroesComponent's template)" linenums="false">
 </code-example>
 
-The browser refreshes and display's the hero's information.
+The browser refreshes and displays the hero's information.
 
 ## Format with the _UppercasePipe_
 
@@ -173,9 +173,9 @@ and what other files and libraries the app requires.
 This information is called _metadata_
 
 Some of the metadata is in the `@Component` decorators that you added to your component classes.
-Other critical metadata is in [`@NgModule`](guide/ngmodule) decorators.
+Other critical metadata is in [`@NgModule`](guide/ngmodules) decorators.
 
-The most important `@NgModule`decorator annotates the top-level **AppModule** class.
+The most important `@NgModule` decorator annotates the top-level **AppModule** class.
 
 The Angular CLI generated an `AppModule` class in `src/app/app.module.ts` when it created the project.
 This is where you _opt-in_ to the `FormsModule`.
@@ -198,7 +198,7 @@ When the browser refreshes, the app should work again. You can edit the hero's n
 
 ### Declare _HeroesComponent_ 
 
-Every component must be declared in _exactly one_ [NgModule](guide/ngmodule).
+Every component must be declared in _exactly one_ [NgModule](guide/ngmodules).
 
 _You_ didn't declare the `HeroesComponent`.
 So why did the application work?

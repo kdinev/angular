@@ -21,6 +21,7 @@ const _XMLNS = 'urn:oasis:names:tc:xliff:document:2.0';
 const _DEFAULT_SOURCE_LANG = 'en';
 const _PLACEHOLDER_TAG = 'ph';
 const _PLACEHOLDER_SPANNING_TAG = 'pc';
+const _MARKER_TAG = 'mrk';
 
 const _XLIFF_TAG = 'xliff';
 const _SOURCE_TAG = 'source';
@@ -111,7 +112,8 @@ export class Xliff2 extends Serializer {
 }
 
 class _WriteVisitor implements i18n.Visitor {
-  private _nextPlaceholderId: number;
+  // TODO(issue/24571): remove '!'.
+  private _nextPlaceholderId !: number;
 
   visitText(text: i18n.Text, context?: any): xml.Node[] { return [new xml.Text(text.value)]; }
 
@@ -189,9 +191,12 @@ class _WriteVisitor implements i18n.Visitor {
 
 // Extract messages as xml nodes from the xliff file
 class Xliff2Parser implements ml.Visitor {
-  private _unitMlString: string|null;
-  private _errors: I18nError[];
-  private _msgIdToHtml: {[msgId: string]: string};
+  // TODO(issue/24571): remove '!'.
+  private _unitMlString !: string | null;
+  // TODO(issue/24571): remove '!'.
+  private _errors !: I18nError[];
+  // TODO(issue/24571): remove '!'.
+  private _msgIdToHtml !: {[msgId: string]: string};
   private _locale: string|null = null;
 
   parse(xliff: string, url: string) {
@@ -284,7 +289,8 @@ class Xliff2Parser implements ml.Visitor {
 
 // Convert ml nodes (xliff syntax) to i18n nodes
 class XmlToI18n implements ml.Visitor {
-  private _errors: I18nError[];
+  // TODO(issue/24571): remove '!'.
+  private _errors !: I18nError[];
 
   convert(message: string, url: string) {
     const xmlIcu = new XmlParser().parse(message, url, true);
@@ -332,6 +338,8 @@ class XmlToI18n implements ml.Visitor {
               new i18n.Placeholder('', endId, el.sourceSpan));
         }
         break;
+      case _MARKER_TAG:
+        return [].concat(...ml.visitAll(this, el.children));
       default:
         this._addError(el, `Unexpected tag`);
     }

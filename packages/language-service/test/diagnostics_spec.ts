@@ -9,19 +9,25 @@
 import * as ts from 'typescript';
 
 import {createLanguageService} from '../src/language_service';
-import {Diagnostics} from '../src/types';
+import {Diagnostics, LanguageService} from '../src/types';
 import {TypeScriptServiceHost} from '../src/typescript_host';
 
 import {toh} from './test_data';
 import {MockTypescriptHost, diagnosticMessageContains, findDiagnostic, includeDiagnostic, noDiagnostics} from './test_utils';
 
 describe('diagnostics', () => {
-  let documentRegistry = ts.createDocumentRegistry();
-  let mockHost = new MockTypescriptHost(['/app/main.ts', '/app/parsing-cases.ts'], toh);
-  let service = ts.createLanguageService(mockHost, documentRegistry);
-  let ngHost = new TypeScriptServiceHost(mockHost, service);
-  let ngService = createLanguageService(ngHost);
-  ngHost.setSite(ngService);
+  let mockHost: MockTypescriptHost;
+  let ngHost: TypeScriptServiceHost;
+  let ngService: LanguageService;
+
+  beforeEach(() => {
+    mockHost = new MockTypescriptHost(['/app/main.ts', '/app/parsing-cases.ts'], toh);
+    const documentRegistry = ts.createDocumentRegistry();
+    const service = ts.createLanguageService(mockHost, documentRegistry);
+    ngHost = new TypeScriptServiceHost(mockHost, service);
+    ngService = createLanguageService(ngHost);
+    ngHost.setSite(ngService);
+  });
 
   it('should be no diagnostics for test.ng',
      () => { expect(ngService.getDiagnostics('/app/test.ng')).toEqual([]); });
@@ -99,7 +105,7 @@ describe('diagnostics', () => {
       const code = '\n@Component({template: \'<form></form>\'}) export class MyComponent {}';
       addCode(code, (fileName, content) => {
         const diagnostics = ngService.getDiagnostics(fileName);
-        expectOnlyModuleDiagnostics(diagnostics !);
+        expectOnlyModuleDiagnostics(diagnostics);
       });
     });
 
@@ -139,7 +145,7 @@ describe('diagnostics', () => {
           ` @Component({template: \`<div *ngIf="something === 'foo'"></div>\`}) export class MyComponent { something: 'foo' | 'bar'; }`;
       addCode(code, fileName => {
         const diagnostics = ngService.getDiagnostics(fileName);
-        expectOnlyModuleDiagnostics(diagnostics !);
+        expectOnlyModuleDiagnostics(diagnostics);
       });
     });
 
@@ -160,7 +166,7 @@ describe('diagnostics', () => {
           ` @Component({template: \`<div *ngIf="something === undefined"></div>\`}) export class MyComponent { something = 'foo'; }})`;
       addCode(code, fileName => {
         const diagnostics = ngService.getDiagnostics(fileName);
-        expectOnlyModuleDiagnostics(diagnostics !);
+        expectOnlyModuleDiagnostics(diagnostics);
       });
     });
 
@@ -173,6 +179,22 @@ describe('diagnostics', () => {
         expect(diagnostic).not.toBeUndefined();
         expect(diagnostic.span.end - diagnostic.span.start).toBeLessThan(11);
       });
+    });
+
+    // Issue #19406
+    it('should allow empty template', () => {
+      const appComponent = `
+        import { Component } from '@angular/core';
+
+        @Component({
+          template : '',
+        })
+        export class AppComponent {}
+      `;
+      const fileName = '/app/app.component.ts';
+      mockHost.override(fileName, appComponent);
+      const diagnostics = ngService.getDiagnostics(fileName);
+      expect(diagnostics).toEqual([]);
     });
 
     // Issue #15460
@@ -232,12 +254,12 @@ describe('diagnostics', () => {
           template: \`
             <div *ngIf="comps | async; let comps; else loading">
             </div>
-            <ng-template #loading>Loading comps...</ng-template>            
+            <ng-template #loading>Loading comps...</ng-template>
           \`
         })
         export class MyComponent {}
       `,
-          fileName => expectOnlyModuleDiagnostics(ngService.getDiagnostics(fileName) !));
+          fileName => expectOnlyModuleDiagnostics(ngService.getDiagnostics(fileName)));
     });
 
     // Issue #15625
@@ -257,7 +279,7 @@ describe('diagnostics', () => {
           }
       `,
           fileName => {
-            const diagnostics = ngService.getDiagnostics(fileName) !;
+            const diagnostics = ngService.getDiagnostics(fileName);
             expectOnlyModuleDiagnostics(diagnostics);
           });
     });
@@ -352,14 +374,17 @@ describe('diagnostics', () => {
     function expectOnlyModuleDiagnostics(diagnostics: Diagnostics | undefined) {
       // Expect only the 'MyComponent' diagnostic
       if (!diagnostics) throw new Error('Expecting Diagnostics');
-      expect(diagnostics.length).toBe(1);
       if (diagnostics.length > 1) {
-        for (const diagnostic of diagnostics) {
-          if (diagnosticMessageContains(diagnostic.message, 'MyComponent')) continue;
-          fail(`(${diagnostic.span.start}:${diagnostic.span.end}): ${diagnostic.message}`);
+        const unexpectedDiagnostics =
+            diagnostics.filter(diag => !diagnosticMessageContains(diag.message, 'MyComponent'))
+                .map(diag => `(${diag.span.start}:${diag.span.end}): ${diag.message}`);
+
+        if (unexpectedDiagnostics.length) {
+          fail(`Unexpected diagnostics:\n  ${unexpectedDiagnostics.join('\n  ')}`);
+          return;
         }
-        return;
       }
+      expect(diagnostics.length).toBe(1);
       expect(diagnosticMessageContains(diagnostics[0].message, 'MyComponent')).toBeTruthy();
     }
   });

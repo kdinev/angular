@@ -50,7 +50,6 @@ export interface CompilerOptions extends ts.CompilerOptions {
   annotateForClosureCompiler?: boolean;
   annotationsAs?: 'decorators'|'static fields';
   trace?: boolean;
-  enableLegacyTemplate?: boolean;
   disableExpressionLowering?: boolean;
   i18nOutLocale?: string;
   i18nOutFormat?: string;
@@ -60,6 +59,7 @@ export interface CompilerOptions extends ts.CompilerOptions {
   i18nInFile?: string;
   i18nInMissingTranslations?: 'error'|'warning'|'ignore';
   preserveWhitespaces?: boolean;
+  disableTypeScriptVersionCheck?: boolean;
 }
 
 export interface CompilerHost extends ts.CompilerHost {
@@ -108,15 +108,15 @@ export interface LazyRoute {
 
 export interface Program {
   getTsProgram(): ts.Program;
-  getTsOptionDiagnostics(cancellationToken?: ts.CancellationToken): ts.Diagnostic[];
-  getNgOptionDiagnostics(cancellationToken?: ts.CancellationToken): Diagnostic[];
+  getTsOptionDiagnostics(cancellationToken?: ts.CancellationToken): ReadonlyArray<ts.Diagnostic>;
+  getNgOptionDiagnostics(cancellationToken?: ts.CancellationToken): ReadonlyArray<Diagnostic>;
   getTsSyntacticDiagnostics(sourceFile?: ts.SourceFile, cancellationToken?: ts.CancellationToken):
-      ts.Diagnostic[];
-  getNgStructuralDiagnostics(cancellationToken?: ts.CancellationToken): Diagnostic[];
+      ReadonlyArray<ts.Diagnostic>;
+  getNgStructuralDiagnostics(cancellationToken?: ts.CancellationToken): ReadonlyArray<Diagnostic>;
   getTsSemanticDiagnostics(sourceFile?: ts.SourceFile, cancellationToken?: ts.CancellationToken):
-      ts.Diagnostic[];
+      ReadonlyArray<ts.Diagnostic>;
   getNgSemanticDiagnostics(fileName?: string, cancellationToken?: ts.CancellationToken):
-      Diagnostic[];
+      ReadonlyArray<ts.Diagnostic|Diagnostic>;
   loadNgStructureAsync(): Promise<void>;
   listLazyRoutes(entryRoute?: string): LazyRoute[];
   emit({emitFlags, cancellationToken, customTransformers, emitCallback}: {
@@ -132,7 +132,7 @@ export function createProgram(
     {rootNames, options, host, oldProgram}:
         {rootNames: string[], options: CompilerOptions, host: CompilerHost, oldProgram?: Program}):
     Program {
-  return createProgramOrig({rootNames, options, host, oldProgram: oldProgram as ProgramOrig});
+  return createProgramOrig({rootNames, options, host, oldProgram: oldProgram as any});
 }
 
 // Wrapper for createCompilerHost.
@@ -143,7 +143,7 @@ export function createCompilerHost(
 }
 
 // Wrapper for formatDiagnostics.
-export type Diagnostics = Array<ts.Diagnostic|Diagnostic>;
+export type Diagnostics = ReadonlyArray<ts.Diagnostic|Diagnostic>;
 export function formatDiagnostics(diags: Diagnostics): string {
   return formatDiagnosticsOrig(diags);
 }

@@ -11,8 +11,6 @@ import {CollectorOptions, METADATA_VERSION} from '@angular/compiler-cli';
 import {MetadataCollector} from '@angular/compiler-cli/src/metadata/collector';
 import * as ts from 'typescript';
 
-
-
 // This matches .ts files but not .d.ts files.
 const TS_EXT = /(^.|(?!\.d)..)\.ts$/;
 
@@ -194,6 +192,25 @@ describe('StaticSymbolResolver', () => {
 
       expect(symbolResolver.getImportAs(symbolCache.get('/test2.d.ts', 'a')))
           .toBe(symbolCache.get('/test3.d.ts', 'b'));
+    });
+
+    it('should ignore summaries for inputAs if requested', () => {
+      init(
+          {
+            '/test.ts': `
+        export {a} from './test2';
+      `
+          },
+          [], [{
+            symbol: symbolCache.get('/test2.d.ts', 'a'),
+            importAs: symbolCache.get('/test3.d.ts', 'b')
+          }]);
+
+      symbolResolver.getSymbolsOf('/test.ts');
+
+      expect(
+          symbolResolver.getImportAs(symbolCache.get('/test2.d.ts', 'a'), /* useSummaries */ false))
+          .toBeUndefined();
     });
 
     it('should calculate importAs for symbols with members based on importAs for symbols without',
@@ -476,6 +493,8 @@ export class MockStaticSymbolResolverHost implements StaticSymbolResolverHost {
   }
 
   getMetadataFor(moduleId: string): any { return this._getMetadataFor(moduleId); }
+
+  getOutputName(filePath: string): string { return filePath; }
 
   private _getMetadataFor(filePath: string): any {
     if (this.data[filePath] && filePath.match(TS_EXT)) {

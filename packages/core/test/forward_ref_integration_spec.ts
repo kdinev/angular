@@ -11,7 +11,7 @@ import {Component, ContentChildren, Directive, Inject, NO_ERRORS_SCHEMA, NgModul
 import {TestBed} from '@angular/core/testing';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
 
-export function main() {
+{
   describe('forwardRef integration', function() {
     beforeEach(() => { TestBed.configureTestingModule({imports: [Module], declarations: [App]}); });
 
@@ -46,7 +46,8 @@ class App {
   template: `{{frame.name}}(<span *ngFor="let  lock of locks">{{lock.name}}</span>)`,
 })
 class Door {
-  @ContentChildren(forwardRef(() => Lock)) locks: QueryList<Lock>;
+  // TODO(issue/24571): remove '!'.
+  @ContentChildren(forwardRef(() => Lock)) locks !: QueryList<Lock>;
   frame: Frame;
 
   constructor(@Inject(forwardRef(() => Frame)) frame: Frame) { this.frame = frame; }

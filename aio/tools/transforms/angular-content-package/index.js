@@ -43,7 +43,7 @@ module.exports = new Package('angular-content', [basePackage, contentPackage])
     readFilesProcessor.sourceFiles = readFilesProcessor.sourceFiles.concat([
       {
         basePath: CONTENTS_PATH,
-        include: CONTENTS_PATH + '/{cookbook,guide,tutorial}/**/*.md',
+        include: CONTENTS_PATH + '/{guide,tutorial}/**/*.md',
         fileReader: 'contentFileReader'
       },
       {
@@ -65,6 +65,11 @@ module.exports = new Package('angular-content', [basePackage, contentPackage])
       {
         basePath: CONTENTS_PATH,
         include: CONTENTS_PATH + '/navigation.json',
+        fileReader: 'jsonFileReader'
+      },
+      {
+        basePath: CONTENTS_PATH,
+        include: CONTENTS_PATH + '/marketing/announcements.json',
         fileReader: 'jsonFileReader'
       },
       {
@@ -104,6 +109,7 @@ module.exports = new Package('angular-content', [basePackage, contentPackage])
       },
       {docTypes: ['navigation-json'], pathTemplate: '${id}', outputPathTemplate: '../${id}.json'},
       {docTypes: ['contributors-json'], pathTemplate: '${id}', outputPathTemplate: '../${id}.json'},
+      {docTypes: ['announcements-json'], pathTemplate: '${id}', outputPathTemplate: '../${id}.json'},
       {docTypes: ['resources-json'], pathTemplate: '${id}', outputPathTemplate: '../${id}.json'}
     ]);
   })

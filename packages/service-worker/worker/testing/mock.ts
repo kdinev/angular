@@ -73,7 +73,7 @@ export class MockServerStateBuilder {
   }
 
   withManifest(manifest: Manifest): MockServerStateBuilder {
-    this.resources.set('/ngsw.json', new MockResponse(JSON.stringify(manifest)));
+    this.resources.set('ngsw.json', new MockResponse(JSON.stringify(manifest)));
     return this;
   }
 
@@ -95,7 +95,9 @@ export class MockServerState {
   private requests: Request[] = [];
   private gate: Promise<void> = Promise.resolve();
   private resolve: Function|null = null;
-  private resolveNextRequest: Function;
+  // TODO(issue/24571): remove '!'.
+  private resolveNextRequest !: Function;
+  online = true;
   nextRequest: Promise<Request>;
 
   constructor(private resources: Map<string, Response>, private errors: Set<string>) {
@@ -107,6 +109,10 @@ export class MockServerState {
     this.nextRequest = new Promise(resolve => { this.resolveNextRequest = resolve; });
 
     await this.gate;
+
+    if (!this.online) {
+      throw new Error('Offline.');
+    }
 
     if (req.credentials === 'include') {
       return new MockResponse(null, {status: 0, statusText: '', type: 'opaque'});
@@ -171,6 +177,7 @@ export class MockServerState {
     this.nextRequest = new Promise(resolve => { this.resolveNextRequest = resolve; });
     this.gate = Promise.resolve();
     this.resolve = null;
+    this.online = true;
   }
 }
 
@@ -190,16 +197,20 @@ export function tmpManifestSingleAssetGroup(fs: MockFileSystem): Manifest {
         patterns: [],
       },
     ],
-    hashTable,
+    navigationUrls: [], hashTable,
   };
 }
 
-export function tmpHashTableForFs(fs: MockFileSystem): {[url: string]: string} {
+export function tmpHashTableForFs(
+    fs: MockFileSystem, breakHashes: {[url: string]: boolean} = {}): {[url: string]: string} {
   const table: {[url: string]: string} = {};
   fs.list().forEach(path => {
     const file = fs.lookup(path) !;
     if (file.hashThisFile) {
       table[path] = file.hash;
+      if (breakHashes[path]) {
+        table[path] = table[path].split('').reverse().join('');
+      }
     }
   });
   return table;

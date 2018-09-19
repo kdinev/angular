@@ -13,7 +13,7 @@ import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
 import {getDOM} from '@angular/platform-browser/src/dom/dom_adapter';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
 
-export function main() {
+{
   describe('jit', () => { declareTests({useJit: true}); });
 
   describe('no jit', () => { declareTests({useJit: false}); });
@@ -81,7 +81,8 @@ function declareTests({useJit}: {useJit: boolean}) {
            @Directive({selector: '[myDir]'})
            class MyDir {
              setterCalls: {[key: string]: any} = {};
-             changes: SimpleChanges;
+             // TODO(issue/24571): remove '!'.
+             changes !: SimpleChanges;
 
              @Input()
              set a(v: number) { this.setterCalls['a'] = v; }
@@ -121,10 +122,11 @@ function declareTests({useJit}: {useJit: boolean}) {
         expect(MyCountingComp.calls).toBe(1);
       });
 
-      it('should evalute a conditional in a statement binding', () => {
+      it('should evaluate a conditional in a statement binding', () => {
         @Component({selector: 'some-comp', template: '<p (click)="nullValue?.click()"></p>'})
         class SomeComponent {
-          nullValue: SomeReferencedClass;
+          // TODO(issue/24571): remove '!'.
+          nullValue !: SomeReferencedClass;
         }
 
         class SomeReferencedClass {
@@ -272,7 +274,8 @@ function declareTests({useJit}: {useJit: boolean}) {
 
       @Directive({selector: '[someDir]'})
       class MyDir {
-        @Input('someDir') template: TemplateRef<any>;
+        // TODO(issue/24571): remove '!'.
+        @Input('someDir') template !: TemplateRef<any>;
       }
 
       const ctx =
@@ -292,8 +295,9 @@ function declareTests({useJit}: {useJit: boolean}) {
     it('should not recreate ViewContainerRefs in queries', () => {
       @Component({template: '<div #vc></div><div *ngIf="show" #vc></div>'})
       class MyComp {
+        // TODO(issue/24571): remove '!'.
         @ViewChildren('vc', {read: ViewContainerRef})
-        viewContainers: QueryList<ViewContainerRef>;
+        viewContainers !: QueryList<ViewContainerRef>;
 
         show = true;
       }
@@ -344,7 +348,8 @@ function declareTests({useJit}: {useJit: boolean}) {
     it('should support @ContentChild and @Input on the same property for static queries', () => {
       @Directive({selector: 'test'})
       class Test {
-        @Input() @ContentChild(TemplateRef) tpl: TemplateRef<any>;
+        // TODO(issue/24571): remove '!'.
+        @Input() @ContentChild(TemplateRef) tpl !: TemplateRef<any>;
       }
 
       @Component({
@@ -409,7 +414,7 @@ function declareTestsUsingBootstrap() {
 
       logger = new MockConsole();
       errorHandler = new ErrorHandler();
-      errorHandler._console = logger as any;
+      (errorHandler as any)._console = logger as any;
     }));
 
     afterEach(() => { destroyPlatform(); });
